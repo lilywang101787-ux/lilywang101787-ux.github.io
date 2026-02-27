@@ -143,13 +143,26 @@
                     throw new Error(errMsg);
                 }
 
-                // 提取Agent回复（兼容Coze所有返回格式）
-                let botReply = "暂无回复";
-                if (responseData.data && responseData.data.answers) {
-                    botReply = responseData.data.answers[0].content || botReply;
-                } else if (responseData.answer) {
-                    botReply = responseData.answer;
-                }
+                // 增强版：兼容Coze所有返回格式
+let botReply = "暂无回复";
+// 格式1：标准返回
+if (responseData.data && responseData.data.messages) {
+    botReply = responseData.data.messages.find(msg => msg.role === 'assistant')?.content || botReply;
+}
+// 格式2：简化返回
+else if (responseData.data && responseData.data.answers) {
+    botReply = responseData.data.answers[0].content || botReply;
+}
+// 格式3：旧版返回
+else if (responseData.answer) {
+    botReply = responseData.answer;
+}
+// 格式4：流式返回兼容
+else if (responseData.choices && responseData.choices[0]) {
+    botReply = responseData.choices[0].message?.content || botReply;
+}
+// 打印返回数据，方便排查（可选）
+console.log("Coze API返回数据：", responseData);
 
                 // 显示Agent回复
                 addMessage(botReply, 'bot');
