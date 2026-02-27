@@ -1,0 +1,7 @@
+{
+  "name": "coze-chat",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "cp index.html dist/index.html" // 仅复制 HTML 到 dist 目录
+  }
+}
