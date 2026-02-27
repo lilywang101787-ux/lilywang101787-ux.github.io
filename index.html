@@ -3,108 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AnalyzeGenius by Lily</title>
+    <title>lily genius</title>
+    <!-- 优先用这个备用 SDK 链接，兼容所有环境 -->
+    <script src="https://lf6-cdn-tos.bytecdntp.com/cdn/expire-100-M/coze/sdk/chat/v1/index.js"></script>
     <style>
-        /* 简单样式，让聊天界面更美观 */
-        body { font-family: Arial; max-width: 800px; margin: 20px auto; }
-        #coze-chat-container { 
-            width: 100%; 
-            height: 600px; 
-            border: 1px solid #eee; 
-            border-radius: 8px; 
-            padding: 10px; 
-            overflow-y: auto; 
-            margin-bottom: 10px;
-        }
+        #coze-chat-container { width: 100%; height: 600px; border: 1px solid #eee; border-radius: 8px; padding: 10px; overflow-y: auto; margin: 20px auto; max-width: 800px; }
         .user-msg { background: #e8f4f8; padding: 8px 12px; border-radius: 8px; margin: 8px 0; text-align: right; }
         .bot-msg { background: #f5f5f5; padding: 8px 12px; border-radius: 8px; margin: 8px 0; text-align: left; }
-        #input-area { display: flex; gap: 10px; }
+        #input-area { display: flex; gap: 10px; max-width: 800px; margin: 0 auto; }
         #msg-input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
         #send-btn { padding: 8px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        #send-btn:disabled { background: #ccc; cursor: not-allowed; }
     </style>
 </head>
 <body>
-    <!-- 1. 聊天容器（对应安装代码里的 container） -->
     <div id="coze-chat-container"></div>
-    
-    <!-- 2. 输入框和发送按钮 -->
     <div id="input-area">
-        <input type="text" id="msg-input" placeholder="输入问题测试，比如：你好，介绍下自己">
+        <input type="text" id="msg-input" placeholder="输入测试内容">
         <button id="send-btn">发送</button>
     </div>
 
-    <!-- 3. Coze 安装代码（核心，放到body最后，确保元素加载完成） -->
-    <script src="https://cdn.coze.com/sdk/chat/v1/index.js"></script>
     <script>
+        // 先检查 CozeChat 是否加载成功
+        if (typeof CozeChat === 'undefined') {
+            alert("SDK加载失败！请检查网络或更换SDK链接");
+            console.error("CozeChat 未定义，SDK加载失败");
+        } else {
         // 替换成你自己的参数
         const PAT = "pat_1OM37bwhYsobDPA8pciu521q4R2LkAR29nt7U7A8PpwBGrsnXWElSkLHrpOFnwdM"; // 格式：pat_xxxxxxxxxxxxxxxxxxxx
         const BOT_ID = "7610693462039707674"; // 格式：1234567890abcdef
 
-        // 初始化 Coze ChatSDK（安装代码核心逻辑）
-        let cozeChat = null;
-        window.onload = function() {
-            try {
-                // 初始化 SDK（对应Coze的安装代码）
-                cozeChat = new CozeChat({
-                    container: document.getElementById('coze-chat-container'),
-                    apiKey: PAT,
-                    botId: BOT_ID,
-                    userId: "test-user-001",
-                    language: "zh-CN",
-                    showThinking: false, // 隐藏推理过程
-                    showReasoning: false,
-                    onError: (error) => {
-                        alert("Agent加载失败：" + error.message);
-                        console.error("SDK错误：", error);
-                    }
-                });
-                // 挂载 SDK（安装代码的关键步骤）
-                cozeChat.mount();
+            let cozeChat = null;
+            window.onload = function() {
+                try {
+                    cozeChat = new CozeChat({
+                        container: document.getElementById('coze-chat-container'),
+                        apiKey: PAT,
+                        botId: BOT_ID,
+                        userId: "test-user-001",
+                        language: "zh-CN",
+                        showThinking: false,
+                        showReasoning: false
+                    });
+                    cozeChat.mount();
+                    alert("SDK初始化成功！"); // 测试提示
 
-                // 绑定发送按钮事件（修复按钮不生效问题）
-                const sendBtn = document.getElementById('send-btn');
-                const msgInput = document.getElementById('msg-input');
-                const chatContainer = document.getElementById('coze-chat-container');
-
-                // 发送消息函数
-                function sendMsg() {
-                    const msg = msgInput.value.trim();
-                    if (!msg || !cozeChat) return;
-
-                    // 禁用按钮，防止重复点击
-                    sendBtn.disabled = true;
-                    // 显示用户消息
-                    chatContainer.innerHTML += `<div class="user-msg">${msg}</div>`;
-                    msgInput.value = '';
-
-                    // 发送消息（SDK核心接口）
-                    cozeChat.sendMessage(msg)
-                        .then((response) => {
-                            // 显示Agent回复
-                            chatContainer.innerHTML += `<div class="bot-msg">${response.content || '暂无回复'}</div>`;
-                            chatContainer.scrollTop = chatContainer.scrollHeight;
-                        })
-                        .catch((err) => {
-                            chatContainer.innerHTML += `<div class="bot-msg" style="color:red;">发送失败：${err.message}</div>`;
-                        })
-                        .finally(() => {
-                            sendBtn.disabled = false; // 解锁按钮
+                    // 绑定发送事件
+                    const sendBtn = document.getElementById('send-btn');
+                    const msgInput = document.getElementById('msg-input');
+                    sendBtn.addEventListener('click', () => {
+                        const msg = msgInput.value.trim();
+                        if (!msg) return;
+                        document.getElementById('coze-chat-container').innerHTML += `<div class="user-msg">${msg}</div>`;
+                        msgInput.value = '';
+                        cozeChat.sendMessage(msg).then(res => {
+                            document.getElementById('coze-chat-container').innerHTML += `<div class="bot-msg">${res.content || '暂无回复'}</div>`;
                         });
+                    });
+                } catch (err) {
+                    alert("初始化失败：" + err.message);
                 }
-
-                // 按钮点击发送
-                sendBtn.addEventListener('click', sendMsg);
-                // 回车发送
-                msgInput.addEventListener('keydown', (e) => {
-                    if (e.key === 'Enter') sendMsg();
-                });
-
-            } catch (err) {
-                alert("初始化失败：" + err.message);
-                console.error("初始化错误：", err);
-            }
-        };
+            };
+        }
     </script>
 </body>
 </html>
