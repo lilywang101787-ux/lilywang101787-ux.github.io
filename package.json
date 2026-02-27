@@ -1,7 +1,0 @@
-{
-  "name": "coze-chat",
-  "version": "1.0.0",
-  "scripts": {
-    "build": "cp index.html dist/index.html"
-  }
-}
