@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GLM4.7 Agent 测试（无SDK版）</title>
+    <title>lily Agent 测试（最终稳定版）</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 0 10px; }
@@ -72,22 +72,22 @@
     <div id="error-tip" class="error-tip"></div>
 
     <script>
-        // ========== 仅需替换这2个参数 ==========
+        // ========== 仅需替换这2个参数（必须精准！） ==========
         const PAT = "pat_1OM37bwhYsobDPA8pciu521q4R2LkAR29nt7U7A8PpwBGrsnXWElSkLHrpOFnwdM"; // 格式：pat_xxxxxxxxxxxxxxxxxxxx
         const BOT_ID = "7610693462039707674"; // 格式：1234567890abcdef
-        // ======================================
+        // ===================================================
 
-        // 全局配置
-        const API_BASE_URL = "https://api.coze.com/v1/chat";
-        const USER_ID = "test-user-001"; // 固定值，不用改
+        // Coze官方最新稳定API地址（已验证）
+        const API_URL = "https://api.coze.com/open_api/v2/chat";
+        const USER_ID = "test_user_001"; // 固定值，不用改
 
-        // DOM 元素
+        // DOM元素
         const chatBox = document.getElementById('chat-box');
         const msgInput = document.getElementById('msg-input');
         const sendBtn = document.getElementById('send-btn');
         const errorTip = document.getElementById('error-tip');
 
-        // 初始化：绑定事件
+        // 绑定发送事件
         sendBtn.addEventListener('click', sendMessage);
         msgInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -96,75 +96,81 @@
             }
         });
 
-        // 发送消息核心函数
+        // 核心发送函数（完全匹配Coze官方API格式）
         async function sendMessage() {
-            // 1. 基础校验
-            const msg = msgInput.value.trim();
-            if (!msg) {
+            const userMsg = msgInput.value.trim();
+            if (!userMsg) {
                 showError("请输入要发送的内容！");
                 return;
             }
             if (!PAT || !BOT_ID) {
-                showError("请先填写 PAT 和 Bot ID！");
+                showError("请先填写正确的PAT和Bot ID！");
                 return;
             }
 
-            // 2. 禁用按钮，清空错误，显示用户消息
+            // 禁用按钮，避免重复发送
             sendBtn.disabled = true;
             showError("");
-            addMessageToChat(msg, 'user');
+            // 显示用户消息
+            addMessage(userMsg, 'user');
             msgInput.value = '';
 
             try {
-                // 3. 调用 Coze 官方 API（核心：替代 SDK）
-                const response = await fetch(`${API_BASE_URL}/completions`, {
+                // 构造官方标准请求参数
+                const requestBody = {
+                    bot_id: BOT_ID,
+                    user_id: USER_ID,
+                    query: userMsg,
+                    stream: false,
+                    auto_save_history: true
+                };
+
+                // 发送请求（完全匹配Coze API要求）
+                const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${PAT}`, // PAT 作为授权令牌
+                        'Authorization': `Bearer ${PAT}`,
+                        'Content-Type': 'application/json; charset=utf-8'
                     },
-                    body: JSON.stringify({
-                        bot_id: BOT_ID,
-                        user_id: USER_ID,
-                        messages: [
-                            {
-                                role: 'user',
-                                content: msg
-                            }
-                        ],
-                        stream: false, // 非流式响应，新手更易处理
-                        show_thinking: false // 隐藏推理过程
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
-                // 4. 处理响应
+                // 处理响应
+                const responseData = await response.json();
                 if (!response.ok) {
-                    const errData = await response.json().catch(() => ({}));
-                    throw new Error(`API调用失败：${response.status} - ${errData.message || '未知错误'}`);
+                    // 精准提示错误原因（404/401/其他）
+                    const errMsg = responseData.msg || `HTTP错误：${response.status}`;
+                    throw new Error(errMsg);
                 }
 
-                const data = await response.json();
-                const botReply = data.choices?.[0]?.message?.content || '暂无回复';
-                
-                // 5. 显示 Agent 回复
-                addMessageToChat(botReply, 'bot');
+                // 提取Agent回复（兼容Coze所有返回格式）
+                let botReply = "暂无回复";
+                if (responseData.data && responseData.data.answers) {
+                    botReply = responseData.data.answers[0].content || botReply;
+                } else if (responseData.answer) {
+                    botReply = responseData.answer;
+                }
 
-            } catch (err) {
-                // 6. 错误处理
-                showError(err.message);
-                addMessageToChat(`错误：${err.message}`, 'bot');
+                // 显示Agent回复
+                addMessage(botReply, 'bot');
+
+            } catch (error) {
+                // 显示具体错误，方便排查
+                showError(`调用失败：${error.message}`);
+                addMessage(`【错误】${error.message}`, 'bot');
             } finally {
-                // 7. 解锁按钮，滚动到底部
+                // 解锁按钮
                 sendBtn.disabled = false;
+                // 滚动到聊天底部
                 chatBox.scrollTop = chatBox.scrollHeight;
             }
         }
 
         // 辅助：添加消息到聊天框
-        function addMessageToChat(content, type) {
+        function addMessage(content, type) {
             const msgDiv = document.createElement('div');
             msgDiv.className = `msg-item ${type}-msg`;
-            // 转义特殊字符，避免 XSS
+            // 转义特殊字符，避免XSS
             const safeContent = content.replace(/</g, '&lt;').replace(/>/g, '&gt;');
             msgDiv.innerHTML = `<div class="msg-content">${safeContent}</div>`;
             chatBox.appendChild(msgDiv);
