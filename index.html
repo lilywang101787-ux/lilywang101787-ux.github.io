@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GLM4.7 Agent 测试</title>
+    <!-- 引入 Coze ChatSDK -->
+    <script src="https://cdn.coze.com/sdk/chat/v1/index.js"></script>
+    <style>
+        /* 简单样式，聊天窗口适配手机/电脑 */
+        body { margin: 20px; font-family: Arial; }
+        #chat-box { width: 100%; max-width: 800px; height: 600px; border: 1px solid #eee; border-radius: 8px; padding: 10px; overflow-y: auto; margin-bottom: 10px; }
+        .user-msg { background: #e8f4f8; padding: 8px 12px; border-radius: 8px; margin: 8px 0; text-align: right; }
+        .bot-msg { background: #f5f5f5; padding: 8px 12px; border-radius: 8px; margin: 8px 0; text-align: left; }
+        #input-area { display: flex; gap: 10px; }
+        #msg-input { flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        #send-btn { padding: 8px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h3>GLM4.7 Agent 测试</h3>
+    <div id="chat-box"></div>
+    <div id="input-area">
+        <input type="text" id="msg-input" placeholder="输入问题测试，比如：你好，介绍下自己">
+        <button id="send-btn">发送</button>
+    </div>
+
+    <script>
+        // 替换成你自己的参数！！！
+        const PAT = "pat_1OM37bwhYsobDPA8pciu521q4R2LkAR29nt7U7A8PpwBGrsnXWElSkLHrpOFnwdM"; // 粘贴第一步复制的PAT
+        const BOT_ID = "7610693462039707674"; // 粘贴第一步复制的Bot ID
+
+        // 初始化 ChatSDK
+        const cozeChat = new CozeChat({
+            container: document.getElementById('chat-box'),
+            apiKey: PAT,
+            botId: BOT_ID,
+            userId: "test-user-001", // 固定值，不用改
+            language: "zh-CN",
+            showThinking: false, // 隐藏推理过程
+            showReasoning: false
+        });
+        cozeChat.mount();
+
+        // 发送消息逻辑
+        document.getElementById('send-btn').addEventListener('click', () => {
+            const input = document.getElementById('msg-input');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            // 显示用户消息
+            const chatBox = document.getElementById('chat-box');
+            chatBox.innerHTML += `<div class="user-msg">${msg}</div>`;
+            input.value = '';
+
+            // 发送给 Agent
+            cozeChat.sendMessage(msg);
+            chatBox.scrollTop = chatBox.scrollHeight; // 滚动到底部
+        });
+
+        // 回车发送
+        document.getElementById('msg-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('send-btn').click();
+        });
+    </script>
+</body>
+</html>
