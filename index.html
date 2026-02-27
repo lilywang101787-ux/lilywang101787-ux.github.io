@@ -3,138 +3,60 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Coze 国内版正式版</title>
+    <title>Coze 国内版 SDK 稳定版</title>
+    <!-- 国内版 Coze SDK 链接（解决加载失败问题） -->
+    <script src="https://lf3-cdn-tos.bytecdntp.com/cdn/expire-100-M/coze/sdk/chat/v1/index.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 20px auto; padding: 0 10px; }
-        #chat-box { 
-            width: 100%; 
-            height: 500px; 
-            border: 1px solid #e0e0e0; 
-            border-radius: 8px; 
-            padding: 15px; 
-            overflow-y: auto; 
-            margin-bottom: 15px; 
-            background: #f9f9f9;
+        body {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 0 10px;
+            font-family: Arial, sans-serif;
         }
-        .msg-item { margin: 10px 0; display: flex; }
-        .user-msg { justify-content: flex-end; }
-        .bot-msg { justify-content: flex-start; }
-        .msg-avatar { width: 32px; height: 32px; border-radius: 50%; margin: 0 8px; }
-        .user-msg .msg-avatar { order: 2; }
-        .msg-content { 
-            padding: 8px 12px; 
-            border-radius: 12px; 
-            max-width: 70%;
-            line-height: 1.5;
+        /* SDK 聊天容器 */
+        #coze-chat-container {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 15px;
         }
-        .user-msg .msg-content { background: #007bff; color: white; }
-        .bot-msg .msg-content { background: #e0e0e0; color: #333; }
-        #shortcuts { 
-            display: flex; 
-            gap: 8px; 
-            margin-bottom: 15px; 
-            flex-wrap: wrap;
-        }
-        .shortcut-btn { 
-            padding: 6px 12px; 
-            background: #e8f4f8; 
-            border: 1px solid #dee2e6; 
-            border-radius: 16px; 
-            cursor: pointer; 
-            font-size: 12px;
-        }
-        #input-wrap { display: flex; gap: 10px; align-items: center; }
-        #msg-input { flex: 1; padding: 10px; border: 1px solid #e0e0e0; border-radius: 20px; outline: none; }
-        #send-btn { padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 20px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div id="chat-box"></div>
-    <div id="shortcuts">
-        <div class="shortcut-btn">你好</div>
-        <div class="shortcut-btn">介绍一下你自己</div>
-    </div>
-    <div id="input-wrap">
-        <input type="text" id="msg-input" placeholder="输入问题...">
-        <button id="send-btn">发送</button>
-    </div>
+    <!-- SDK 挂载容器 -->
+    <div id="coze-chat-container"></div>
 
     <script>
-        // ====================== 只改这里 ======================
+        // ========== 仅需替换这2个参数 ==========
         const PAT = "pat_1OM37bwhYsobDPA8pciu521q4R2LkAR29nt7U7A8PpwBGrsnXWElSkLHrpOFnwdM"; // 格式：pat_xxxxxxxxxxxxxxxxxxxx
         const BOT_ID = "7610693462039707674"; // 格式：1234567890abcdef
-        // ======================================================
+        // ======================================
 
-        // 国内版 Coze 正确 API
-        const API_URL = "https://api.coze.cn/api/v1/chat/messages";
-        const USER_ID = "test_user";
-
-        const chatBox = document.getElementById('chat-box');
-        const msgInput = document.getElementById('msg-input');
-        const sendBtn = document.getElementById('send-btn');
-        const shortcuts = document.getElementById('shortcuts');
-
-        window.onload = () => {
-            bindShortcut();
-        };
-
-        async function sendMessage(text) {
-            if (!text) return;
-            addMsg(text, "user");
-            msgInput.value = "";
-
+        // 等待 SDK 加载完成后初始化
+        window.onload = function() {
             try {
-                const res = await fetch(API_URL, {
-                    method: "POST",
-                    headers: {
-                        "Authorization": "Bearer " + PAT,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        bot_id: BOT_ID,
-                        user_id: USER_ID,
-                        query: text,
-                        stream: false
-                    })
+                // 初始化国内版 Coze Chat SDK
+                const cozeChat = new CozeChat({
+                    container: document.getElementById('coze-chat-container'),
+                    apiKey: PAT,
+                    botId: BOT_ID,
+                    userId: "test_user_001",
+                    language: "zh-CN",
+                    showThinking: false, // 隐藏推理过程
+                    showReasoning: false,
+                    // 国内版适配配置
+                    region: "cn",
+                    baseUrl: "https://api.coze.cn"
                 });
 
-                const data = await res.json();
-                console.log("API 返回：", data);
-
-                let reply = "暂无回复";
-                if (data?.choices?.[0]?.message?.content) {
-                    reply = data.choices[0].message.content;
-                } else if (data?.message) {
-                    reply = data.message;
-                }
-
-                addMsg(reply, "bot");
-            } catch (e) {
-                addMsg("出错：" + e.message, "bot");
+                // 挂载 SDK（自动显示开场白、快捷指令）
+                cozeChat.mount();
+                console.log("SDK 初始化成功！");
+            } catch (error) {
+                alert("初始化失败：" + error.message);
+                console.error("SDK 错误：", error);
             }
-        }
-
-        function addMsg(content, role) {
-            const div = document.createElement("div");
-            div.className = `msg-item ${role}-msg`;
-            div.innerHTML = `
-                <img class="msg-avatar" src="https://picsum.photos/32">
-                <div class="msg-content">${content}</div>
-            `;
-            chatBox.appendChild(div);
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
-
-        function bindShortcut() {
-            shortcuts.querySelectorAll(".shortcut-btn").forEach(btn => {
-                btn.onclick = () => sendMessage(btn.innerText);
-            });
-        }
-
-        sendBtn.onclick = () => sendMessage(msgInput.value.trim());
-        msgInput.onkeydown = (e) => {
-            if (e.key === "Enter") sendMessage(msgInput.value.trim());
         };
     </script>
 </body>
